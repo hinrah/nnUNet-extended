@@ -3,7 +3,82 @@ from nnunetv2.training.loss.dice import SoftDiceLoss, MemoryEfficientSoftDiceLos
 from nnunetv2.training.loss.robust_ce_loss import RobustCrossEntropyLoss, TopKLoss
 from nnunetv2.utilities.helpers import softmax_helper_dim1
 from torch import nn
+from scipy.ndimage import binary_dilation
 
+class VesselWallLoss(nn.Module):
+    def __init__(self, soft_dice_kwargs, ce_kwargs, weight_ce=1, weight_dice=1, ignore_label=None,
+                 dice_class=SoftDiceLoss, dilatation_size=3, padding=1, weight_morph=0.0001):
+        super(VesselWallLoss, self).__init__()
+        if ignore_label is None:
+            ignore_label = 99
+        self.ignore_label = ignore_label
+        self.used_loss = DC_and_CE_loss(soft_dice_kwargs, ce_kwargs, weight_ce, weight_dice, ignore_label,
+                 dice_class=SoftDiceLoss)
+        
+        if ignore_label is not None:
+            ce_kwargs['ignore_index'] = ignore_label
+        self.wall_loss = RobustCrossEntropyLoss(**ce_kwargs)
+
+        self._pool = nn.MaxPool3d(dilatation_size, stride=1, padding=padding)
+        self.weight_morph = weight_morph
+
+    @property
+    def dc(self):
+        return self.used_loss.dc
+    
+    @dc.setter
+    def dc(self, dc):
+        self.used_loss.dc = dc
+
+    def forward(self, net_output: torch.Tensor, target: torch.Tensor):
+        lumen_mask = (net_output.argmax(dim=1, keepdim=True)==2).float().detach()
+        dilated = self._pool(lumen_mask.float())
+        wall_label = torch.where((dilated-lumen_mask)>0,1,self.ignore_label)
+        
+        usual_loss = self.used_loss(net_output, target)
+
+
+        mask = wall_label != self.ignore_label
+        num_fg = mask.sum()
+
+        wall_loss = self.wall_loss(net_output, wall_label[:, 0]) \
+            if self.weight_morph != 0 and (self.ignore_label is None or num_fg > 0) else 0
+
+        return usual_loss + self.weight_morph*wall_loss
+        
+class VesselWallLossWithActivator(nn.Module):
+    def __init__(self, soft_dice_kwargs, ce_kwargs, weight_ce=1, weight_dice=1, ignore_label=None,
+                 dice_class=SoftDiceLoss, dilatation_size=3):
+        super(VesselWallLossWithActivator, self).__init__()
+        if ignore_label is None:
+            ignore_label = 99
+        self.ignore_label = ignore_label
+        self.used_loss = DC_and_CE_loss(soft_dice_kwargs, ce_kwargs, weight_ce, weight_dice, ignore_label,
+                 dice_class=SoftDiceLoss)
+        self.vessel_wall_weight = 0
+        
+        self._pool = nn.MaxPool3d(dilatation_size, stride=1, padding=1)
+
+    def activate_vessel_wall_loss(self, weight=0.0001):
+        self.vessel_wall_weight = weight
+
+    @property
+    def dc(self):
+        return self.used_loss.dc
+    
+    @dc.setter
+    def dc(self, dc):
+        self.used_loss.dc = dc
+
+    def forward(self, net_output: torch.Tensor, target: torch.Tensor):
+        lumen_mask = (net_output.argmax(dim=1, keepdim=True)==2).float()
+        dilated = self._pool(lumen_mask.float())
+        wall_label = torch.where((dilated-lumen_mask)>0,1,self.ignore_label)
+        
+        usual_loss = self.used_loss(net_output, target)
+
+        wall_loss = self.used_loss(net_output, wall_label)
+        return usual_loss + self.vessel_wall_weight*wall_loss
 
 class DC_and_CE_loss(nn.Module):
     def __init__(self, soft_dice_kwargs, ce_kwargs, weight_ce=1, weight_dice=1, ignore_label=None,
