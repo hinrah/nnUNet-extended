@@ -1,4 +1,20 @@
+nnU-Net extended
+ **This is a fork of [nnU-Net](https://github.com/MIC-DKFZ/nnUNet)**, originally
+ developed by the Division of Medical Image Computing, German Cancer Research
+ Center (DKFZ), and licensed under the Apache License 2.0.
+
+ This fork extends nnU-Net with 4D convolution support. See
+ [CHANGES.md](CHANGES.md) for a list of modifications.
+
+ This project is **not affiliated with, endorsed by, or maintained by** the
+ original nnU-Net authors or the DKFZ. Please direct issues with this fork here,
+ not to the upstream repository.
+
+ Large parts of this README are derived from the original nnU-Net documentation.
+
+
 # Welcome to the new nnU-Net!
+
 
 Click [here](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) if you were looking for the old one instead.
 
@@ -135,10 +151,11 @@ datasets. A big driver for the reimplementation was also the emergence of [Helmh
 prompting us to extend nnU-Net to more image formats and domains. Take a look [here](documentation/changelog.md) for some highlights.
 
 # Acknowledgements
-<img src="documentation/assets/HI_Logo.png" height="100px" />
+"Originally developed at DKFZ — [link](https://github.com/MIC-DKFZ/nnUNet)"
 
-<img src="documentation/assets/dkfz_logo.png" height="100px" />
+ **This is a fork of [nnU-Net](https://github.com/MIC-DKFZ/nnUNet)**, originally
+ developed by the Division of Medical Image Computing, German Cancer Research
+ Center (DKFZ), and licensed under the Apache License 2.0.
 
-nnU-Net is developed and maintained by the Applied Computer Vision Lab (ACVL) of [Helmholtz Imaging](http://helmholtz-imaging.de) 
-and the [Division of Medical Image Computing](https://www.dkfz.de/en/mic/index.php) at the 
-[German Cancer Research Center (DKFZ)](https://www.dkfz.de/en/index.html).
+ This fork extends nnU-Net with 4D convolution support. See
+ [CHANGES.md](CHANGES.md) for a list of modifications.
